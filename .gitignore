@@ -1,0 +1,112 @@
+# Git ignore for this repository
+# Keep .agent/ for local development, skill/ is the publish folder
+# .agent/
+
+# --- OS ---
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
+desktop.ini
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.js
+.pnp/
+.cache/
+dist/
+build/
+.next/
+out/
+
+# Environment files (keep examples if present)
+.env
+.env.local
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+env/
+venv/
+.venv/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+.cache/
+
+# --- Java / Maven / Gradle ---
+target/
+*.class
+.gradle/
+
+# --- .NET ---
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# --- Logs & Reports ---
+logs/
+*.log
+coverage/
+coverage.*
+
+# Playwright
+playwright-report/
+test-results/
+
+# Contracts UI runtime artifacts (when installed into a project)
+contracts-ui/.logs/
+contracts-ui/contracts-ui.config.json
+
+# Repo minimal-ui runtime artifacts
+skill/ui/minimal-ui/.logs/
+
+# --- Misc ---
+*.bak
+*.swp
+*.tmp
+*.DS_Store
+
+# npm pack/publish artifacts
+*.tgz
+
+# If any of these were already committed, run e.g.:
+#   git rm -r --cached .agent node_modules .env .venv
+#   git commit -m "Remove ignored files from repository"
+#   git push
+
+# --- Project / test artifacts to ignore ---
+# Local agent skills and generated contracts (not source)
+.agent/
+.contracts/
+.claude/
+
+# Temporary test projects created during development
+test-fresh-project/
+test-installation-project/
+
+# Local sandbox project (not committed)
+local-test-project/
+
+# Any folder starting with test-
+test-*/

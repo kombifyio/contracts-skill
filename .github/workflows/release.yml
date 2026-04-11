@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v2.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Resolve Release Plan
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
+      checkout_ref: ${{ steps.plan.outputs.checkout_ref }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+
+    steps:
+      - name: Resolve release plan
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag="${{ github.event.inputs.tag }}"
+            checkout_ref="refs/tags/$tag"
+          else
+            tag="${{ github.ref_name }}"
+            checkout_ref="${{ github.ref }}"
+          fi
+          version="${tag#v}"
+          prerelease=false
+          if echo "$tag" | grep -qE '-(alpha|beta|rc)'; then
+            prerelease=true
+          fi
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "checkout_ref=$checkout_ref"
+            echo "prerelease=$prerelease"
+          } >> "$GITHUB_OUTPUT"
+
+  validate:
+    name: Pre-release Validation
+    needs: prepare
+    uses: ./.github/workflows/validate.yml
+
+  release:
+    name: Create GitHub Release
+    needs: [prepare, validate]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.checkout_ref }}
+
+      - name: Verify version in CHANGELOG
+        shell: bash
+        run: |
+          version="${{ needs.prepare.outputs.version }}"
+          if ! grep -q "\[${version}\]" CHANGELOG.md; then
+            echo "::error::Version $version not found in CHANGELOG.md"
+            exit 1
+          fi
+          echo "✅ Version $version found in CHANGELOG.md"
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        shell: bash
+        run: |
+          version="${{ needs.prepare.outputs.version }}"
+          # Extract section between this version header and the next version header
+          notes=$(awk "/^## \\[${version}\\]/{found=1; next} /^## \\[/{if(found) exit} found{print}" CHANGELOG.md)
+          if [ -z "$notes" ]; then
+            notes="Release ${{ needs.prepare.outputs.tag }}"
+          fi
+          # Write to file to avoid escaping issues
+          echo "$notes" > release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: Contract Skill ${{ needs.prepare.outputs.tag }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
+          generate_release_notes: false
